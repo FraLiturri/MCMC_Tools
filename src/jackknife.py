@@ -6,28 +6,26 @@ def mean(data: np.ndarray, function: callable = lambda x: x**2) -> float:
 
 
 def checker(x: float, y: float) -> bool:
-    return True if max(x,y) / min(x,y) >= 100 else False
+    return True if max(x, y) / min(x, y) >= 100 else False
 
 
-class Bootstrap:
+class Jackknife:
     def __init__(
         self,
         data: np.ndarray,
         *,
         blocks: int,
-        boot_samples: int,
-        therm : int = 0,
+        therm: int = 0,
         function: callable = lambda x: x**2,
     ):
         data = data[therm:]  # discard initial therm steps
-        self.data = np.asarray(data)
+        self.data = data
         self.k = blocks
-        self.r = boot_samples
         self.n = len(self.data)
         self.function = function
 
         try:
-            assert checker(self.n, self.k)
+            assert checker(self.n, self.k) is True
         except AssertionError:
             print(
                 f"\nWarning: Number of blocks k={self.k} is too large for data size n={self.n} "
@@ -37,22 +35,23 @@ class Bootstrap:
         self.blocks = np.array_split(self.data, self.k)
 
     def execute(self) -> tuple[float, float]:
-        means = []
-        for _ in range(self.r):
-            sampled_blocks = []
-            for _ in range(self.k):
-                random_index = np.random.randint(0, self.k)
-                sampled_blocks.append(self.blocks[random_index])
+        F_val = []
+        S = sum(self.function(self.data))
+        aux = 0
 
-            sampled_blocks = np.concatenate(sampled_blocks)
-            block_mean = mean(sampled_blocks, function=self.function)
-            means.append(block_mean)
+        for i in range(self.k):
+            F_i = S - sum(self.blocks[i])
+            F_i = F_i / (self.n - len(self.blocks[i]))
+            F_val.append(F_i)
 
-        means = np.array(means)
-        estimated_mean = mean(self.data, function=self.function)
-        estimated_std = np.std(means, ddof=1)
+        for i in range(self.k):
+            partial_sum = (F_val[i] - np.mean(F_val)) ** 2
+            partial_sum = partial_sum * (self.n - self.n // self.k) / self.n
+            aux += partial_sum
 
-        return estimated_mean, estimated_std 
+        expected_std = aux**0.5
+        expected_mean = mean(self.data, function=self.function)
+        return expected_mean, expected_std
 
     def __call__(self):
         return self.execute()
