@@ -17,7 +17,7 @@ class Jackknife:
         blocks: int,
         therm: int = 0,
         function: callable = lambda x: x**2,
-        primary_functions: list[callable] = []
+        primary_functions: list[callable] = [],
     ):
         data = data[therm:]  # discard initial therm steps
         self.data = data
@@ -38,23 +38,37 @@ class Jackknife:
 
     def execute(self) -> tuple[float, float]:
         if self.primary_functions != []:
-            """Calculating mean:"""
-            g_alpha = []
-            mean_element = []
-            for func in self.primary_functions: 
+            """Calculate means"""
+            S = [sum(func(self.data)) for func in self.primary_functions]
+            
+            means = []
+            for j, func in enumerate(self.primary_functions):
                 g_alpha_list = []
-                S = sum(func(self.data))
                 for i in range(self.k):
-                    g_alpha_i = (S - sum(func(self.blocks[i])))/ (self.n - len(self.blocks[i]))
+                    g_alpha_i = (S[j] - sum(func(self.blocks[i]))) / (
+                        self.n - len(self.blocks[i])
+                    )
                     g_alpha_list.append(g_alpha_i)
-                _ = np.mean(g_alpha_i)
-                mean_element.append(_)
-            g_alpha.append(g_alpha_list)
-            expected_mean = self.function(*mean_element)
+                means.append(np.mean(g_alpha_list))
+            
+            expected_mean = self.function(*means)
 
-            """Calculating std:"""
-
-            expected_std = 0
+            """Calculate standard deviation"""
+            F_i = []
+            for i in range(self.k):
+                g_i = []
+                for j, func in enumerate(self.primary_functions):
+                    g_alpha_i = (S[j] - sum(func(self.blocks[i]))) / (
+                        self.n - len(self.blocks[i])
+                    )
+                    g_i.append(g_alpha_i)
+                F_i.append(self.function(*g_i))
+            
+            aux = sum(
+                (F_i[i] - np.mean(F_i)) ** 2 * (self.n - self.n // self.k) / self.n
+                for i in range(self.k)
+            )
+            expected_std = aux**0.5
 
             return expected_mean, expected_std
 

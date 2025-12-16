@@ -14,7 +14,9 @@ bootstrap = Bootstrap(
     primary_functions=[lambda x: x**2],
 )
 
-jackknife = Jackknife(data, blocks=600, function=lambda x: x**2)
+jackknife = Jackknife(
+    data, blocks=600, function=lambda x: x, primary_functions=[lambda x: x**2]
+)
 
 autocorr = Autocorrelation(data, prop=6, therm=100, function=lambda x: x**2)
 
