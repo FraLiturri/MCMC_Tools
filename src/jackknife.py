@@ -38,26 +38,22 @@ class Jackknife:
 
     def execute(self) -> tuple[float, float]:
         if self.primary_functions != []:
-            F_J = []
+            """Calculating mean:"""
             g_alpha = []
             mean_element = []
             for func in self.primary_functions: 
-                F_list = []
                 g_alpha_list = []
-                aux_list = [[]]
-                aux_index = 0
                 S = sum(func(self.data))
                 for i in range(self.k):
-                    g_alpha_i = S - sum(func(self.blocks[i]))
-                    g_alpha_i = g_alpha_i / (self.n - len(self.blocks[i]))
+                    g_alpha_i = (S - sum(func(self.blocks[i])))/ (self.n - len(self.blocks[i]))
                     g_alpha_list.append(g_alpha_i)
-
                 _ = np.mean(g_alpha_i)
                 mean_element.append(_)
-
             g_alpha.append(g_alpha_list)
-            
             expected_mean = self.function(*mean_element)
+
+            """Calculating std:"""
+
             expected_std = 0
 
             return expected_mean, expected_std
